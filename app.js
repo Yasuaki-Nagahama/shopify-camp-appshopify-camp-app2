@@ -1,5 +1,6 @@
 'use strict';
 
+require('dotenv').config();
 const Koa = require('koa');
 const cors = require('@koa/cors');
 const Router = require('koa-router');
@@ -40,6 +41,7 @@ app.use(serve(__dirname + '/public'));
 
 // Shopify API info.
 const API_KEY = `${process.env.SHOPIFY_API_KEY}`;
+console.log(API_KEY);
 const API_SECRET = `${process.env.SHOPIFY_API_SECRET}`;
 const API_VERSION = `${process.env.SHOPIFY_API_VERSION}`;
 const API_SCOPES = `${process.env.SHOPIFY_API_SCOPES}`;
@@ -1724,8 +1726,10 @@ router.get('/multipass', async (ctx, next) => {
 
   if (typeof ctx.request.query.login_shop !== UNDEFINED) {
     const shop = ctx.request.query.login_shop;
+    const error = ctx.request.query.error ? "email or password is incorrect" : null;
     return await ctx.render('sso', {
-      shop: shop
+      shop: shop,
+      error: error
     });
   }
 
@@ -1749,22 +1753,19 @@ router.post('/multipass', async (ctx, next) => {
 
   console.log(`shop ${shop}`);
 
+  const targetEmail = 'test@dt-media.jp';
+  const targetPassword = '_5((84!#6*#8%,!';
+
   const email = ctx.request.body.email;
-  const identifier = ctx.request.body.identifier;
-  const first_name = ctx.request.body.first_name;
-  const last_name = ctx.request.body.last_name;
-  const tag_string = ctx.request.body.tag_string;
-  const remote_ip = ctx.request.body.remote_ip;
-  const return_to = ctx.request.body.return_to;
+  const password = ctx.request.body.password;
+
+  if(targetEmail != email || targetPassword != password) {
+    ctx.redirect(`https://${ctx.request.header.host}/multipass?login_shop=${shop}&error=1`);
+    return;
+  }
 
   const json = {};
   if (email !== '') json.email = email;
-  if (identifier !== '') json.identifier = identifier;
-  if (first_name !== '') json.first_name = first_name;
-  if (last_name !== '') json.last_name = last_name;
-  if (tag_string !== '') json.tag_string = tag_string;
-  if (remote_ip !== '') json.remote_ip = remote_ip;
-  if (return_to !== '') json.return_to = return_to;
   json.created_at = new Date().toISOString();
 
   try {
@@ -1788,7 +1789,6 @@ router.post('/multipass', async (ctx, next) => {
     ctx.body = { "Error": "Wrong store domain or secret passed" };
     return;
   }
-
 });
 
 /* --- Bulk operation sample endpoint --- */
